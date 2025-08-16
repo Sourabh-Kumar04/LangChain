@@ -1,6 +1,7 @@
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 from typing import TypedDict, Annotated
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -8,8 +9,14 @@ model = ChatOpenAI(model="gpt-4", temperature=0.7, max_completion_tokens=1000)
 
 # schema
 class Review(TypedDict):
-    summary: Annotated[str, "A brief summary of the review"]
-    sentiment: Annotated[str, "Return sentiment of the review as positive, negative, or neutral"]
+    
+    key_themes: list[str] = Field(description="Write a list of key themes or topics in the review")
+    summary: str = Field(description="A brief summary of the review")
+    sentiment: str = Field(description="Return the overall sentiment of the review as postive, negative, or neutral")
+    pros: Optional[list[str]] = Field(default=None, description="List of pros mentioned in the revied")
+    cons: Optional[list[str]] = Field(default=None, description="List of pros mentioned in the revied")
+    name: Optional[str] = Field(default=None, description="rite the name of the reviewer")
+
 
 structured_model = model.with_structured_output(Review)
 
@@ -28,7 +35,12 @@ The HP Spectre x360 14 is a luxurious, ultra-versatile 2-in-1 convertible that o
 
 result = structured_model.invoke(prompt)
 
-print(result)
+print(result, "\n")
 print(type(result))
-print("\nSummary: ", result['summary'])
-print("\nSentiment: ", result['sentiment'])
+# print("\nKeys: ", result.keys())
+print("\nKey Themes: ", result.key_themes)
+print("\nSummary: ", result.summary)
+print("\nSentiment: ", result.sentiment)
+print("\nPros: ", result.pros)
+print("\nCons: ", result.cons)
+print("\nName: ", result.name)

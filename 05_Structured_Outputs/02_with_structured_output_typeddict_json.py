@@ -1,6 +1,8 @@
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from dotenv import load_dotenv
 from typing import TypedDict, Annotated, Optional, Literal
+from pydantic import BaseModel, Field, ValidationError
+import json, re
 
 load_dotenv()
 
@@ -22,16 +24,55 @@ llm = HuggingFaceEndpoint(
 model = ChatHuggingFace(llm=llm)
 
 # schema
-class Review(TypedDict):
+json_schema = {
+  "title": "Review",
+  "type": "object",
+  "properties": {
+    "key_themes": {
+      "title": "Key Themes",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Write a list of key themes or topics in the review"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string",
+      "description": "A brief summary of the review"
+    },
+    "sentiment": {
+      "title": "Sentiment",
+      "type": "string",
+      "description": "Return the overall sentiment of the review as postive, negative, or neutral"
+    },
+    "pros": {
+      "title": "Pros",
+      "type": ["array", "null"],
+      "items": {
+        "type": "string"
+      },
+      "description": "List of pros mentioned in the revied"
+    },
+    "cons": {
+      "title": "Cons",
+      "type":["array", "null"],
+      "items": {
+        "type": "string"
+      },
+      "description": "List of pros mentioned in the revied"
+    },
+    "name": {
+      "title": "Name",
+      "type": ["string", "null"],
+      "description": "Write the name of the reviewer"
+    }
+  },
+  "required": ["key_themes", "summary", "sentiment"]
+}
 
-    key_themes: Annotated[list[str], "Write a list of key themes or topics in the review"]
-    summary: Annotated[str, "A brief summary of the review"]
-    sentiment: Annotated[Literal["positive", "negative", "neutral"], "Return the overall sentiment of the review as positive, negative, or neutral"]
-    pros: Annotated[Optional[list[str]], "List of pros mentioned in the review"]
-    cons: Annotated[Optional[list[str]], "List of cons mentioned in the review"]
-    name: Annotated[Optional[str], "Name of the product being reviewed"]
 
-structured_model = model.with_structured_output(Review)
+structured_model = model.with_structured_output(json_schema)
 
 ## prompt explanation
 # - LangChain sends your TypedDict schema to the LLM and expects the LLM to respond in exact JSON that matches it.
@@ -51,5 +92,9 @@ result = structured_model.invoke(prompt)
 print(result, "\n")
 print(type(result))
 print("\nKeys: ", result.keys())
-print("\nSummary: ", result['summary'])
-print("\nSentiment: ", result['sentiment'])
+print("\nKey Themes: ", result["key_themes"])
+print("\nSummary: ", result["summary"])
+print("\nSentiment: ", result["sentiment"])
+print("\nPros: ", result["pros"])
+print("\nCons: ", result["cons"])
+print("\nName: ", result["name"])
